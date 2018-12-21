@@ -34,7 +34,7 @@ class Q_data:
 
         self.Q[1] = (Gama_[0][1][new_obs_k] * Q0[0]) + (Gama_[1][1][new_obs_k] * Q0[1])  
         
-        print("updated Q = \n", self.Q)
+        print("updated Q = \n", self.Q, "normalise : ", self.Q.sum())
 
     def getQ(self):
         return self.Q
@@ -101,10 +101,16 @@ class Fi_data:
             for j in range(self.Fi.shape[1]):
                 for h in range(self.Fi.shape[2]):
                     for k in range(self.Fi.shape[3]):
-                        self.Fi[i][j][h][k]  = (Gama_[0][h][k] * (self.Fi[i][j][0][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0] - self.Fi[i][j][0][k] ) ) ) +                                                (Gama_[1][h][k] * (self.Fi[i][j][1][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,1, h)*Q_[1] - self.Fi[i][j][1][k] ) ) )
+                        print("updata Fi with: Gama_[0][h][k]: ",Gama_[0][h][k], "\nself.Fi[i][j][0][k]: ", self.Fi[i][j][0][k])
+                        print(" self.time_factor: ",  self.time_factor)
+                        print("delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0]",delta(new_obs_k, k), ", ", g_delta(i, j ,0, h), ", ",Q_[0])
+                        self.Fi[i][j][h][k]  = (Gama_[0][h][k] * (self.Fi[i][j][0][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0] - self.Fi[i][j][0][k] ) ) ) +\
+                                               (Gama_[1][h][k] * (self.Fi[i][j][1][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,1, h)*Q_[1] - self.Fi[i][j][1][k] ) ) )
                 
+                        print("updated Fi[i][j][h][k]: ", self.Fi[i][j][h][k])
+        print("updated Fi:\n", self.Fi)
     def getFi(self):
-        return self.Fi;
+        return self.Fi
 
 
 # In[43]:
@@ -132,8 +138,8 @@ class HmmTrainer:
         
         self.A = np.array([[0.5, 0.5],
                            [0.5, 0.5]])
-        self.B = np.array([[0.3, 0.3, 0.3 ],
-                           [0.3, 0.3, 0.3]])
+        # self.B = np.array([[0.3, 0.3, 0.3 ],
+        #                    [0.3, 0.3, 0.3]])
 
         self.pi = np.ones([state_dim_])/ float(state_dim_)
         
@@ -152,7 +158,7 @@ class HmmTrainer:
         Fi_ = np.zeros([state_dim_,state_dim_,state_dim_,obs_dim_])/float(obs_dim_)
         print("信息概率:\n ", Fi_)
         
-        time_factor_ = 0.001
+        time_factor_ = 0.005
 
         print("time_factor: ", time_factor_)
         
@@ -170,32 +176,11 @@ class HmmTrainer:
     #             print("debug gama:\n", self.gama.getGama(),self.q.getQ())
                 self.gama.updateGama(new_obs_k=ob,Q_old=self.q.getQ())
 
-
-
     #             updata q
                 self.q.updateQ(ob, self.gama.getGama())
 
     #             update fi
-                self.fi.updateMode(ob, self.gama.getGama(), self.q.getQ())
-            
-    #             continue
-    #             if not np.any(Gama == 0.0):
-    # #             update A, B
-    #                 print("update A B")
-                
-    #                 fi = self.fi.getFi()
-    #             # fi(i,j,h,k)
-    #                 for i in range(self.A.shape[0]):
-    #                     for j in range(self.A.shape[1]):
-    #                         self.A[i][j] = fi[i,j,:,:].sum() / fi[i,:,:,:].sum()
-                    
-    #                 for j in range(self.B.shape[0]):
-    #                     for k in range(self.B.shape[1]):
-    #                         self.B[j][k] = fi[:,j,:,k].sum() / fi[:,j,:,:].sum()
-
-
-
-        
+                # self.fi.updateMode(ob, self.gama.getGama(), self.q.getQ())
 
 
     def learn(self, data_, online = False):
@@ -209,8 +194,27 @@ class HmmTrainer:
         else :
             self.online_train(data_)
 
-
     
+    def updateParam(self):
+
+        f = self.fi.getFi()
+        A = self.A
+
+        for i in range(A.shape[0]):
+            for j in range(A.shape[1]):
+                A[i][j] = f[i,j,:,:].sum()/ f[i,:,:,:].sum()
+
+        B = self.B
+
+        for j in range(B.shape[0]):
+            for k in range(B.shape[1]):
+                B[j][k] = f[:,j,:,k].sum()/ f[:,j,:,:].sum()
+
+        self.A = A
+        self.B = B
+
+        return A, B
+
         
 #         only when all possible observation is detected
             
@@ -222,11 +226,41 @@ class HmmTrainer:
 h = HmmTrainer(2,3)
 
 #%%
-y = np.array([0,1,0,1,1,1])
+y = np.array([0,1,2,0,1,2,0,1,2,2,2,2,2,1,1,1])
+# y = np.array([0,0,0,0,0,0,0,0,0,0,0])
+for i in range(1):
+    h.learn(y, True)
 
-h.learn(y, True)
 
 #%%
+A,B = h.updateParam()
+print("A:\n", A)
+print("B:\n", B)
 
+#%%
+#i j h k 
+
+
+#%%
+f[0,1,:,:].sum(), f[0,:,:,:].sum()
+
+A = h.A
+
+for i in range(A.shape[0]):
+    for j in range(A.shape[1]):
+        A[i][j] = f[i,j,:,:].sum()/ f[i,:,:,:].sum()
+#%%
+print("updated A:\n", A)
+
+#%%
+B = h.B
+
+for j in range(B.shape[0]):
+    for k in range(B.shape[1]):
+        B[j][k] = f[:,j,:,k].sum()/ f[:,j,:,:].sum()
+
+print("updated B:\n", B)
+#%%
+B
 
 #%%
