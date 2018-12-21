@@ -28,13 +28,14 @@ class Q_data:
         self.Q = Q_
     
     def updateQ(self, new_obs_k, Gama_):
-        Q0 = self.Q
+        Q0 = self.Q.copy()
         print("update Q with K: ", new_obs_k, "\nGama: \n", Gama_, "\nQ0: \n", Q0)
         self.Q[0] = (Gama_[0][0][new_obs_k] * Q0[0]) + (Gama_[1][0][new_obs_k] * Q0[1])  
 
         self.Q[1] = (Gama_[0][1][new_obs_k] * Q0[0]) + (Gama_[1][1][new_obs_k] * Q0[1])  
         
         print("updated Q = \n", self.Q, "normalise : ", self.Q.sum())
+
 
     def getQ(self):
         return self.Q
@@ -179,8 +180,9 @@ class HmmTrainer:
     #             updata q
                 self.q.updateQ(ob, self.gama.getGama())
 
+
     #             update fi
-                # self.fi.updateMode(ob, self.gama.getGama(), self.q.getQ())
+                self.fi.updateMode(ob, self.gama.getGama(), self.q.getQ())
 
 
     def learn(self, data_, online = False):
@@ -228,7 +230,7 @@ h = HmmTrainer(2,3)
 #%%
 y = np.array([0,1,2,0,1,2,0,1,2,2,2,2,2,1,1,1])
 # y = np.array([0,0,0,0,0,0,0,0,0,0,0])
-for i in range(1):
+for i in range(10):
     h.learn(y, True)
 
 
@@ -237,30 +239,6 @@ A,B = h.updateParam()
 print("A:\n", A)
 print("B:\n", B)
 
-#%%
-#i j h k 
 
-
-#%%
-f[0,1,:,:].sum(), f[0,:,:,:].sum()
-
-A = h.A
-
-for i in range(A.shape[0]):
-    for j in range(A.shape[1]):
-        A[i][j] = f[i,j,:,:].sum()/ f[i,:,:,:].sum()
-#%%
-print("updated A:\n", A)
-
-#%%
-B = h.B
-
-for j in range(B.shape[0]):
-    for k in range(B.shape[1]):
-        B[j][k] = f[:,j,:,k].sum()/ f[:,j,:,:].sum()
-
-print("updated B:\n", B)
-#%%
-B
 
 #%%
