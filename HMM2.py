@@ -1,5 +1,5 @@
 #%%
-from HMM import baum_welch_train
+from HMM import baum_welch_train, simulate
 import numpy as np
 # ## online
 # Online Learning with Hidden Markov Models[ Gianluigi Mongillo ,Sophie Deneve]
@@ -98,6 +98,7 @@ class Fi_data:
         self.time_factor = time_factor_
         
     def updateMode(self,new_obs_k ,Gama_, Q_):
+        Fi = self.Fi.copy()
         for i in range(self.Fi.shape[0]):
             for j in range(self.Fi.shape[1]):
                 for h in range(self.Fi.shape[2]):
@@ -105,8 +106,8 @@ class Fi_data:
                         print("updata Fi with: Gama_[0][h][k]: ",Gama_[0][h][k], "\nself.Fi[i][j][0][k]: ", self.Fi[i][j][0][k])
                         print(" self.time_factor: ",  self.time_factor)
                         print("delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0]",delta(new_obs_k, k), ", ", g_delta(i, j ,0, h), ", ",Q_[0])
-                        self.Fi[i][j][h][k]  = (Gama_[0][h][k] * (self.Fi[i][j][0][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0] - self.Fi[i][j][0][k] ) ) ) +\
-                                               (Gama_[1][h][k] * (self.Fi[i][j][1][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,1, h)*Q_[1] - self.Fi[i][j][1][k] ) ) )
+                        self.Fi[i][j][h][k]  = (Gama_[0][h][k] * (Fi[i][j][0][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,0, h)*Q_[0] - Fi[i][j][0][k] ) ) ) +\
+                                               (Gama_[1][h][k] * (Fi[i][j][1][k] + self.time_factor*(delta(new_obs_k, k)*g_delta(i, j ,1, h)*Q_[1] - Fi[i][j][1][k] ) ) )
                 
                         print("updated Fi[i][j][h][k]: ", self.Fi[i][j][h][k])
         print("updated Fi:\n", self.Fi)
@@ -235,10 +236,31 @@ for i in range(10):
 
 
 #%%
-A,B = h.updateParam()
-print("A:\n", A)
-print("B:\n", B)
 
+
+
+#%%
+A = np.array([[0.3,0.7],
+             [0.6, 0.4]])
+B = np.array([[0.2, 0.5, 0.3],
+             [0.4, 0.2, 0.4]])
+pi = np.array([0.7, 0.3])
+
+data , _ = simulate(600, A, B, pi)
+
+
+#%%
+data
+
+#%%
+h = HmmTrainer(2,3)
+
+h.learn(data, True)
+
+#%%
+newA,newB = h.updateParam()
+print("newA:\n", newA)
+print("newB:\n", newB)
 
 
 #%%
