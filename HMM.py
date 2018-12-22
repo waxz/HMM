@@ -121,41 +121,45 @@ def baum_welch_train(observations, A, B, pi, criterion=0.05):
         A[:], B[:], pi[:] = newA, newB, newpi
     return newA, newB, newpi
 
-#%%
-A_ = np.array([[0.3, 0.7],[0.4, 0.6]])
-B_ = np.array([[0.1, 0.3, 0.6],[0.4, 0.5, 0.1]])
-pi_ = np.array([0.5, 0.5])
-# print("pi: ", pi)
-# pic = pi.copy()
-#%%
-observations_data, states_data = simulate(500,A_, B_, pi_)
-print("observations_data:\n",observations_data)
-print("states_data: \n",states_data)
-#%%
-# pa = A_.copy() #np.zeros_like(A_)
-# pb = B_.copy() #np.zeros_like(B_)
-# pc = np.ones_like(pi_)
-
-# pa = np.zeros_like(A_)
-# pb = np.zeros_like(B_)
-# pc = np.ones_like(pi_)
-
-pa = np.array([[0.2, 0.8],[0.5, 0.5]])
-pb = np.array([[0.3, 0.3, 0.4],[0.4, 0.3, 0.3]])
-pc = pi_.copy() #np.ones_like(pi_)
-newA, newB, newpi = baum_welch_train(observations_data, pa, pb, pc,0.05)
-print("newA: ", newA)
-print("newB: ", newB)
-print("newpi: ", newpi)
-
-#%%
-for i in [0,1,2]:
-    print(i, " observations_data-cnt", (observations_data == i).sum())
-
-for i in [0,1]:
-    print(i, " states_data-cnt", (states_data == i).sum())
 
 
+if __name__ == "__main__":
+        
+    #%%
+    A_ = np.array([[0.3, 0.7],[0.4, 0.6]])
+    B_ = np.array([[0.1, 0.3, 0.6],[0.4, 0.5, 0.1]])
+    pi_ = np.array([0.5, 0.5])
+    # print("pi: ", pi)
+    # pic = pi.copy()
+    #%%
+    observations_data, states_data = simulate(500,A_, B_, pi_)
+    print("observations_data:\n",observations_data)
+    print("states_data: \n",states_data)
+    #%%
+    # pa = A_.copy() #np.zeros_like(A_)
+    # pb = B_.copy() #np.zeros_like(B_)
+    # pc = np.ones_like(pi_)
+
+    # pa = np.zeros_like(A_)
+    # pb = np.zeros_like(B_)
+    # pc = np.ones_like(pi_)
+
+    pa = np.array([[0.2, 0.8],[0.5, 0.5]])
+    pb = np.array([[0.3, 0.3, 0.4],[0.4, 0.3, 0.3]])
+    pc = pi_.copy() #np.ones_like(pi_)
+    newA, newB, newpi = baum_welch_train(observations_data, pa, pb, pc,0.05)
+    print("newA: ", newA)
+    print("newB: ", newB)
+    print("newpi: ", newpi)
+
+    #%%
+    for i in [0,1,2]:
+        print(i, " observations_data-cnt", (observations_data == i).sum())
+
+    for i in [0,1]:
+        print(i, " states_data-cnt", (states_data == i).sum())
 
 
-#%%
+
+
+    #%%
