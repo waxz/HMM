@@ -137,8 +137,8 @@ class HmmTrainer:
         }
         # print("transition_probability:\n", transition_probability)
         # print("emission_probability:\n", emission_probability)
-        A = np.array([[0.15, 0.85],
-                      [0.65, 0.35]])
+        A = np.array([[0.5, 0.5],
+                      [0.5, 0.5]])
         B = np.array([[0.2, 0.5, 0.3],
                     [0.4, 0.2, 0.4]])
         pi = np.array([0.5, 0.5])
@@ -178,7 +178,7 @@ class HmmTrainer:
         
         time_factor_ = 0.001
 
-        # print("time_factor: ", time_factor_)
+        print("time_factor: ", time_factor_)
         
         self.fi = Fi_data(Fi_, time_factor_)
         
@@ -205,7 +205,7 @@ class HmmTrainer:
 
             i += 1
             if i > 100:
-                self.fi.updateTimeFactor(0.0001)
+                # self.fi.updateTimeFactor(0.0001)
                 self.updateParam()
 
 
@@ -216,7 +216,7 @@ class HmmTrainer:
         self.updateParam()
 
 
-    def learn(self, data_, online = False):
+    def learn(self, data_, online = False, batch = 1):
         
         # print("get data:\n", data_, "train_mode online = ", online)
 
@@ -225,7 +225,8 @@ class HmmTrainer:
             self.A, self.B, self.pi = baum_welch_train(data_, self.A, self.B, self.pi, criterion=0.05)
         
         else :
-            self.online_train(data_)
+            for i in range(batch):
+                self.online_train(data_)
 
     
     def updateParam(self):
@@ -237,14 +238,14 @@ class HmmTrainer:
         f = self.fi.getFi()
         A_ = self.A.copy()
 
-        for i in range(A.shape[0]):
-            for j in range(A.shape[1]):
+        for i in range(A_.shape[0]):
+            for j in range(A_.shape[1]):
                 A_[i][j] = f[i,j,:,:].sum()/ f[i,:,:,:].sum()
 
         B_ = self.B.copy()
 
-        for j in range(B.shape[0]):
-            for k in range(B.shape[1]):
+        for j in range(B_.shape[0]):
+            for k in range(B_.shape[1]):
                 B_[j][k] = f[:,j,:,k].sum()/ f[:,j,:,:].sum()
 
         self.A = A_
@@ -287,7 +288,7 @@ data , _ = simulate(num, A, B, pi)
 #%%
 h = HmmTrainer(2,3)
 
-h.learn(data, True)
+h.learn(data, True, 5)
 
 #%%
 h.learn(data, True)
