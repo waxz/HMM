@@ -1,6 +1,8 @@
 #%%
 from HMM import baum_welch_train, simulate
 import numpy as np
+import math
+
 # ## online
 # Online Learning with Hidden Markov Models[ Gianluigi Mongillo ,Sophie Deneve]
 
@@ -288,8 +290,36 @@ class HmmTrainer:
         
         
         return Q_
+
         
+    def getStaticState(self):
+        pi_ = np.array([self.A[0][1], self.A[1][0]])
+        pi_ /= pi.sum()
+        return pi_
+
+    def getMixingTime(self, state_prob_):
+
+
+        eps = 0.01
+
+        pi_ = self.getStaticState()
+
+
+        d0 = abs(state_prob_[0][0] - pi_[0])
         
+
+        A_ = self.A
+
+        t = 1
+        print("d0: ", d0)
+
+        print("1 - A_[0][1] - A_[1][0]: ",1 - A_[0][1] - A_[1][0])
+        if (d0 < 1e-4):
+            t = 0
+        else:
+            t = (np.log(eps/d0)/(np.log(abs(1 - A_[0][1] - A_[1][0]))))
+            t = math.ceil(t)
+        return t
 #         only when all possible observation is detected
             
 
@@ -308,7 +338,15 @@ h.learn(y, True)
 #%%
 h.predict(y)
 
+#%%
+p = h.predict(y)
+print("p:\n", p)
+t = h.getMixingTime(p)
+print("t: ", t)
 
+#%%
+
+h.getStaticState()
 #%%
 A = np.array([[0.1,0.9],
              [0.7, 0.3]])
@@ -374,26 +412,19 @@ a2
 #%%
 a3 = a1.T.dot(a2)
 
-#%%
-np.multiply(a1.T,a2)
 
 #%%
-a3.T.dot(a2)
+a  = 1.3
 
-#%%
-a1 = a1.reshape([1,-1])
 
 
 #%%
-(a1 .dot(a2) ).dot(a2)
+round(a)
 
 #%%
-a2
 
+math.ceil( a )
 #%%
-(a1.dot(a2)).dot(a2)
-
-#%%
-a1
+np.log(math.e)
 
 #%%
