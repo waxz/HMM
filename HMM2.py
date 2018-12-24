@@ -137,11 +137,11 @@ class HmmTrainer:
         }
         # print("transition_probability:\n", transition_probability)
         # print("emission_probability:\n", emission_probability)
-        A = np.array([[0.5, 0.5],
+        A_ = np.array([[0.5, 0.5],
                       [0.5, 0.5]])
-        B = np.array([[0.2, 0.5, 0.3],
+        B_ = np.array([[0.2, 0.5, 0.3],
                     [0.4, 0.2, 0.4]])
-        pi = np.array([0.5, 0.5])
+        pi_ = np.array([0.5, 0.5])
         self.A = np.array([[0.7, 0.3],
                            [0.4, 0.6]])
         self.B = np.array([[0.5, 0.4, 0.1 ],
@@ -154,12 +154,12 @@ class HmmTrainer:
 
         self.pi = np.ones([state_dim_])/ float(state_dim_)
         
-        self.A = A
+        self.A = A_
 
 
-        self.B = B
+        self.B = B_
         
-        self.pi = pi
+        self.pi = pi_
 
         print("A:\n", self.A, "\nB:\n", self.B, "\npi:\n", self.pi)
         
@@ -226,6 +226,8 @@ class HmmTrainer:
         
         else :
             for i in range(batch):
+                self.fi.updateTimeFactor(0.001/(2.0*(i/100.0)+1.0))
+
                 self.online_train(data_)
 
     
@@ -249,13 +251,44 @@ class HmmTrainer:
                 B_[j][k] = f[:,j,:,k].sum()/ f[:,j,:,:].sum()
 
         self.A = A_
-        # self.B = B
+        # self.B = B_
 
         # print("update A", A_)
         # print("update B", B_)
 
         return A_, B_
 
+    def predict(self, data_):
+        
+        Q0_ = np.ones_like(self.q.getQ())/float(self.q.getQ().shape[0])
+        Q_ = Q0_.reshape([1, -1])
+        B0_ = np.array([[self.B[0][0], 0],
+                        [0, self.B[1][0]]])
+
+
+        B1_ = np.array([[self.B[0][1], 0],
+                        [0, self.B[1][1]]])
+
+        B2_ = np.array([[self.B[0][2], 0],
+                        [0, self.B[1][2]]])
+        
+        B_ = np.array([B0_, B1_, B2_])
+        for ob in data_:
+            # print("="*10,ob)
+            # print("Q_\n",Q_)
+            # print("self.A\n",self.A)
+            # print("B_[ob]\n",B_[ob])
+            # print("Q_.dot(self.A)\n", Q_.dot(self.A))
+
+            Q_ = (Q_.dot(self.A)).dot(B_[ob])
+            print("Q_:\n", Q_)
+
+        Q_ *= 1.0/(Q_.sum())
+        print("predicted:\n", Q_)
+        
+        
+        return Q_
+        
         
 #         only when all possible observation is detected
             
@@ -273,7 +306,7 @@ h.learn(y, True)
 
 
 #%%
-
+h.predict(y)
 
 
 #%%
@@ -282,16 +315,15 @@ A = np.array([[0.1,0.9],
 B = np.array([[0.2, 0.5, 0.3],
              [0.4, 0.2, 0.4]])
 pi = np.array([0.5, 0.5])
-num = int(5e4)
+num = int(5e2)
 data , _ = simulate(num, A, B, pi)
 
 #%%
 h = HmmTrainer(2,3)
-
-h.learn(data, True, 5)
+#%%
+h.learn(data, True, 500)
 
 #%%
-h.learn(data, True)
 newA,newB = h.updateParam()
 print("newA:\n", newA)
 print("newB:\n", newB)
@@ -321,5 +353,47 @@ h.q.getQ()
 
 #%%
 h.gama.getGama()
+
+#%%
+
+h.q.getQ()
+
+
+#%%
+a1 = np.array([0.5, 0.5])
+
+#%%
+a1
+
+#%%
+a2 = np.array([[1,0],[2,1]])
+
+#%%
+a2
+
+#%%
+a3 = a1.T.dot(a2)
+
+#%%
+np.multiply(a1.T,a2)
+
+#%%
+a3.T.dot(a2)
+
+#%%
+a1 = a1.reshape([1,-1])
+
+
+#%%
+(a1 .dot(a2) ).dot(a2)
+
+#%%
+a2
+
+#%%
+(a1.dot(a2)).dot(a2)
+
+#%%
+a1
 
 #%%
