@@ -55,7 +55,8 @@ endif()
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-find_package(Boost COMPONENTS filesystem regex)
+find_package(Boost COMPONENTS filesystem regex system thread filesystem serialization program_options)
+#target_link_libraries(save_test ${Boost_LIBRARIES})
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     #    add_executable(${PROJECT_NAME} main.cpp)
@@ -93,8 +94,11 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
 set(CV_LIBS ${OpenCV_LIBS})
 
 
-add_library(${PROJECT_NAME} src/HMM.cpp)
+add_library(${PROJECT_NAME} src/Hmm.cpp)
 
 
 add_executable(${PROJECT_NAME}_test src/HMM_test.cpp)
 target_link_libraries(${PROJECT_NAME}_test ${PROJECT_NAME})
+
+add_executable(save_test src/test.cpp)
+target_link_libraries(save_test ${Boost_LIBRARIES})
