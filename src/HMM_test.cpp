@@ -14,12 +14,52 @@ using std::endl;
 int main(){
 
     // initialise model A B Q Fi Gama
-    Eigen::MatrixXd Q(1, 2);
-    Eigen::MatrixXd A(2, 2);
-    Eigen::MatrixXd B(2, 3);
+    Eigen::MatrixXf Q(1, 2);
+    Eigen::MatrixXf A(2, 2);
+    Eigen::MatrixXf B(2, 3);
     Hmm::Tensor4f Fi(2,2,2,3);
     Hmm::Tensor3f Gama(2,2,3);
 
+    Gama.setRandom();
+
+
+    Eigen::array<int, 3> o({0,0,0});
+
+    cout << "gama:\n" << Gama <<endl;
+    cout << "chip:\n" << Gama.chip(1,0) << endl;
+    Eigen::Tensor<float,2 > j = Gama.chip(1,0).setZero();
+    cout << j.dimensions().size() <<"," << j.dimension(0) << ", " << j.dimension(1) << endl;
+    cout << "gama:\n" << Gama <<endl;
+
+    A.setRandom();
+    auto d = A.diagonal();
+    d(0) = 2;
+    A.diagonal() = d;
+    cout << "A:\n" << A << endl;
+    cout << "B:\n" << A*B << endl;
+    Eigen::MatrixXf C;
+    C = A*B;
+    C.setRandom();
+    C *= 2.3;
+    // map matrix to tensor
+    Eigen::Tensor<float,2> m;
+    Eigen::MatrixXf n(2,2);
+    n.setRandom();
+    float da[4] = {1.2,2.2,3.3,4.4};
+    Eigen::TensorMap<Eigen::Tensor<float, 2>> mm(n.data(), 2,2);
+    cout << "gama:\n" << Gama <<endl;
+
+    Gama.chip(1,2) = mm;
+    cout << "gama:\n" << Gama <<endl;
+
+    cout << "mm:\n" << mm <<endl;
+
+
+
+
+
+
+    return 0 ;
 
 
 

@@ -4,19 +4,52 @@
 
 #include <HMM/Hmm.h>
 
-void Hmm::updateGama(Eigen::MatrixXd &Q, int new_obs, Eigen::MatrixXd &A, Eigen::MatrixXd &B) {
+void Hmm::updateGama(HmmParams &params, int new_obs) {
 
-    std::cout << "updateGama, get Gama:\n" << Q << "\nA:\n" << A << "\nB:\n" << B << "\nnew_obs: " << new_obs << std::endl;
+    std::cout << "updateGama, get Gama:\n" << params.Q() << "\nA:\n" << params.A() << "\nB:\n" << params.B() << "\nnew_obs: " << new_obs << std::endl;
+
+    auto QAB = params.Q()*(params.A()*params.B().col(new_obs));
+    float p_sum = QAB(0,0);// = Q*(A*B.col(new_obs));
+
+    std::cout << "p_sum: " << p_sum <<std::endl;
+
+//    auto AB =
+    auto B_eye = params.A();
+
+    B_eye.setZero();
+
+    B_eye.diagonal() = params.B().col(new_obs);
+
+    Eigen::MatrixXf AB_eye;
+    AB_eye = params.A()*B_eye;
+
+    if (p_sum == 0.0){
+        p_sum = 0.001;
+    }
+
+    AB_eye.setZero();
+
+
+    AB_eye.array() /= p_sum;
+
+    // matrix to tensor
+    Eigen::TensorMap<Eigen::Tensor<float, 2>> t_AB(AB_eye.data(),AB_eye.rows(),AB_eye.cols());
+
+    params.Gama().chip(new_obs,2) = t_AB;
+
+#if 0
+
+#endif
 }
 
-void Hmm::updateQ(Eigen::MatrixXd &Q, int new_obs, Hmm::Tensor3f &Gama) {
-    std::cout << "updateQ, get Q:\n" << Q << "\nGama:\n" << Gama << "\nnew_obs: " << new_obs << std::endl;
+void Hmm::updateQ(HmmParams &params, int new_obs) {
+    std::cout << "updateQ, get Q:\n" << params.Q() << "\nGama:\n" << params.Gama() << "\nnew_obs: " << new_obs << std::endl;
 
 }
 
-void Hmm::updateFi(Hmm::Tensor4f &Fi, Hmm::Tensor3f &Gama, Eigen::MatrixXd &Q, int new_obs, double learning_rate) {
-    std::cout << "updateFi, get Q:\n" << Q << "\nGama:\n" << Gama << "\nnew_obs: " << new_obs << std::endl;
-    std::cout << "updateFi, get Fi:\n" << Fi << "\nlearning_rate:\n" << learning_rate << std::endl;
+void Hmm::updateFi(HmmParams &params, int new_obs, double learning_rate) {
+    std::cout << "updateFi, get Q:\n" << params.Q() << "\nGama:\n" << params.Gama() << "\nnew_obs: " << new_obs << std::endl;
+    std::cout << "updateFi, get Fi:\n" << params.Fi() << "\nlearning_rate:\n" << learning_rate << std::endl;
 
 }
 
@@ -46,9 +79,9 @@ void Hmm::learn(HmmParams &params, std::vector<int > training_data, float learni
     // ? when to update A,B
     for (auto ob : training_data){
 
-        updateGama(params.Q(), ob,params.A(), params.B());
-        updateFi(params.Fi(), params.Gama(), params.Q(), ob, learning_rate);
-        updateQ(params.Q(), ob, params.Gama());
+        updateGama(params, ob);
+        updateFi(params, ob, learning_rate);
+        updateQ(params, ob);
     }
 }
 
