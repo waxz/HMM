@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
+#include <fstream>
 #include <HMM/Hmm.h>
 #include <unsupported/Eigen/CXX11/Tensor>
 #define debug_on true
@@ -11,16 +12,118 @@
 using std::cout;
 using std::endl;
 
+
+
+std::vector<int> fileReader(std::string file_path){
+    std::ifstream ifs(file_path);
+
+    std::vector<int> nums;
+
+    std::string data;
+    ifs >> data;
+
+    int s = 0;
+    int e = 0;
+
+    auto sz = data.size();
+    for(decltype(sz) i = 0; i < sz; i++){
+
+        if (data[i] == ','){
+
+            e = i;
+            float num = atoi(data.substr(s, e-s).c_str());
+            nums.push_back(num);
+            s = i + 1;
+        }
+    }
+
+    return nums;
+}
+
 int main(){
 
+
+    std::string fp = "/home/waxz/data.txt";
+
+    auto sim_data = fileReader(fp);
+
+
+
     // initialise model A B Q Fi Gama
-    Eigen::MatrixXf Q(1, 2);
+    Eigen::MatrixXf Q(1, 2) ;
+    Q << 0.5, 0.5;
     Eigen::MatrixXf A(2, 2);
+    A << 0.5,0.5,0.5,0.5;
+
     Eigen::MatrixXf B(2, 3);
+    B << 0.2,0.5,0.3,0.4,0.2,0.4;
+
+//    Eigen::Tensor<float, 3> mt(3,3,2);
+//    mt.setValues({{{1,2},{2,9},{3,0}},{{4,3},{5,2},{6,3}},{{7,4},{8,5},{9,6}}});
+//
+//    Eigen::array<int, 2> d1({2,0});
+//    Eigen::Tensor<float, 1> mts = mt.sum(d1);
+//    cout << "mts:\n" << mts << endl;
+//    return 0;
+
+
     Hmm::Tensor4f Fi(2,2,2,3);
     Hmm::Tensor3f Gama(2,2,3);
 
-    Gama.setRandom();
+
+    Fi.setZero();
+    Gama.setZero();
+
+    Hmm::HmmParams params(Q, A, B, Fi, Gama);
+
+    float lr = 0.001;
+    std::vector<int> data = {0,1,2};
+
+#if 0
+    updateGama(params, 0);
+//    updateGama(params, 1);
+//    updateGama(params, 2);
+
+    updateFi(params, 0, lr);
+    cout << "Fi:\n" << params.Fi()(0,0,0,0) << ", " << params.Fi()(0,1,1,0) << ", "
+         << params.Fi()(1,0,0,0) << ", " << params.Fi()(1,1,1,0) << endl;
+    updateQ(params, 0);
+#endif
+
+#if 1
+    bool first = true;
+    for (int i = 0; i < 50;i++){
+        cout << "=== " << i << endl;
+        int cs = (first) ? 100:0;
+        Hmm::learn(params,sim_data,lr, cs);
+
+
+        cout << "A:\n" << params.A() << endl;
+        cout << "B:\n" << params.B() << endl;
+    }
+#endif
+
+//    Hmm::updateModel(params);
+
+
+
+
+#if 0
+
+    for (int i = 0 ; i < 2 ; i++){
+        Eigen::Tensor<float, 3> tensor = params.Fi().chip(i,0);
+        Eigen::Tensor<float, 2> tensor2 = params.Gama().chip(i,0);
+        cout << "Gama " << i << "====\n" << tensor2 << endl;
+        for (int j=0;j <2 ;j++){
+            cout << "Fi " << i << ", " << j <<"====\n" << tensor.chip(j,0) << endl;
+
+        }
+    }
+#endif
+
+    return 0 ;
+
+#if 0
 
 
     Eigen::array<int, 3> o({0,0,0});
@@ -54,39 +157,14 @@ int main(){
 
     cout << "mm:\n" << mm <<endl;
 
+    Eigen::array<int,2> offset({0,1});
+
+    auto fs = Gama.sum(offset);
+
+    cout << "fs:\n" << fs << endl;
 
 
 
-
-
-    return 0 ;
-
-
-
-
-
-
-
-
-    Hmm::HmmParams params(Q, A, B, Fi, Gama);
-
-    float lr = 0.01;
-    std::vector<int> data = {1,2,1,1,0,0,1,1};
-    Hmm::learn(params,data,lr);
-
-    std::cout << "m1:\n" << Q.rows() << std::endl;
-
-//    std::cout << "p m1:\n" << params.Q() << std::endl;
-
-//    params.Q()(0,0) = 990;
-    params.Fi()(0,0,0,0) = 999;
-
-    std::cout << "p Fi:\n" << params.Fi() << std::endl;
-
-    std::cout << "Fi:\n" << Fi << std::endl;
-
-
-#if 0
     Eigen::MatrixXf M1 = Eigen::MatrixXf::Random(3,8);
     cout << "Column major input:" << endl << M1 << "\n";
 

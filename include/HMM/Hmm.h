@@ -111,12 +111,12 @@ namespace Hmm{
 
     };
 // equation 2.1
-    inline bool deltaCompare2(int i, int j){
-        return (i == j) ? 1 : 0;
+    inline float deltaCompare2(int i, int j){
+        return (i == j) ? 1.0f : 0.0f;
     }
 
 // equation 2.9
-    inline bool dealtaCompare4(int i, int j, int l, int h){
+    inline float deltaCompare4(int i, int j, int l, int h){
         return deltaCompare2(i, l)*deltaCompare2(j, h);
     }
 
@@ -155,7 +155,7 @@ namespace Hmm{
      * equation 2.14
      * */
 
-    void updateModel(HmmParams& params);
+    void updateModel(HmmParams& params, bool A_update, bool B_update);
 
 /* =================
  *
@@ -168,7 +168,7 @@ namespace Hmm{
  *
  *
  * */
-    void learn(HmmParams& params, std::vector<int > training_data, float learning_rate);
+    void learn(HmmParams& params, std::vector<int > training_data, float learning_rate, int cache_step = 0);
 
 
     /* predict current state with latest observation
