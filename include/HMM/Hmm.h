@@ -4,37 +4,60 @@
 
 #ifndef HMM_HMM_H
 #define HMM_HMM_H
+#include <HMM/time.h>
+
 
 #include <Eigen/Eigen>
+#include <Eigen/Core>
 #include <unsupported/Eigen/CXX11/Tensor>
-
+//#include <unsupported/Eigen/CXX11/TensorFixedSize>
 #include <vector>
 #include <iostream>
 #include <memory>
 #include <cassert>
+#include <valarray>
+#define STATE_DIM 2
+#define OBS_DIM 3
 
 namespace Hmm{
-    typedef Eigen::Tensor<float,2> Tensor2f;
-    typedef Eigen::Tensor<float,3> Tensor3f;
-    typedef Eigen::Tensor<float,4> Tensor4f;
+
+    typedef Eigen::Tensor<float,4> TensorX4;
+    typedef Eigen::Tensor<float,3> TensorX3;
+
+    typedef Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM,STATE_DIM,OBS_DIM>> TensorGama;
+    typedef Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM,STATE_DIM>> TensorGama2;
+
+    typedef Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM,STATE_DIM,STATE_DIM,OBS_DIM>> TensorFi;
+    typedef Eigen::Matrix<float,1,STATE_DIM> MatrixQ;
+    typedef Eigen::Matrix<float,STATE_DIM,STATE_DIM> MatrixTrans;
+    typedef Eigen::Matrix<float,STATE_DIM,OBS_DIM> MatrixObs;
+
+
     // simple help function
 
     // data structure to store hmm related params
     // save data to
     // use tensor
     class HmmParams{
-    private:
-        std::shared_ptr<Eigen::MatrixXf> Q_ptr;
-        std::shared_ptr<Eigen::MatrixXf> A_ptr;
-        std::shared_ptr<Eigen::MatrixXf> B_ptr;
-        std::shared_ptr<Tensor4f> Fi_ptr;
-        std::shared_ptr<Tensor3f> Gama_ptr;
+    public:
+        std::shared_ptr<MatrixQ> Q_ptr;
+        std::shared_ptr<MatrixTrans> A_ptr;
+        std::shared_ptr<MatrixObs> B_ptr;
+        std::shared_ptr<TensorFi> Fi_ptr;
+        std::shared_ptr<TensorGama> Gama_ptr;
 
-        int state_dim;
-        int obs_dim;
         bool valid;
 
     public:
+
+        ~HmmParams(){
+
+        }
+        int state_dim;
+        int obs_dim;
+//        constexpr int getStateDim(){
+//            return state_dim;
+//        }
         bool isValid(){
             return valid;
         }
@@ -49,31 +72,51 @@ namespace Hmm{
         Eigen::MatrixXf& Gama;
 #endif
 
-        Eigen::MatrixXf& Q(){
+        MatrixQ& Q(){
             return *Q_ptr;
         }
-        Eigen::MatrixXf& A(){
+        float& Q(int i, int j){
+            return (*Q_ptr)(i,j);
+
+        }
+        template <typename T>
+        void setQ(T &m){
+            *Q_ptr = m;
+
+//            std::swap(*Q_ptr,m);
+        }
+
+        template <typename T>
+        void setFi(T&& m){
+
+            *Fi_ptr = m;
+        }
+        MatrixTrans& A(){
             return *A_ptr;
         }
-        Eigen::MatrixXf& B(){
+        MatrixObs& B(){
             return *B_ptr;
         }
-        Tensor4f& Fi(){
+        TensorFi& Fi(){
             return *Fi_ptr;
         }
-        Tensor3f& Gama(){
+        inline float& Fi(int i, int j, int h, int k){
+            return (*Fi_ptr)(i,j,h,k);
+
+        }
+        TensorGama& Gama(){
             return *Gama_ptr;
         }
 
 
         HmmParams(Eigen::MatrixXf& Q_, Eigen::MatrixXf& A_,
-                  Eigen::MatrixXf& B_, Tensor4f& Fi_,
-                  Tensor3f& Gama_):
-                Q_ptr(std::make_shared<Eigen::MatrixXf>(Q_)),
-                A_ptr(std::make_shared<Eigen::MatrixXf>(A_)),
-                B_ptr(std::make_shared<Eigen::MatrixXf>(B_)),
-                Fi_ptr(std::make_shared<Tensor4f>(Fi_)),
-                Gama_ptr(std::make_shared<Tensor3f>(Gama_)),
+                  Eigen::MatrixXf& B_, TensorX4& Fi_,
+                  TensorX3& Gama_):
+                Q_ptr(std::make_shared<MatrixQ>(Q_)),
+                A_ptr(std::make_shared<MatrixTrans>(A_)),
+                B_ptr(std::make_shared<MatrixObs>(B_)),
+                Fi_ptr(std::make_shared<TensorFi>(Fi_)),
+                Gama_ptr(std::make_shared<TensorGama>(Gama_)),
                 valid(false){
             // check dimention
 
@@ -125,7 +168,7 @@ namespace Hmm{
  * Gama(T) = f(y(T), A, B, Q(T-1))
  * */
 
-    void updateGama(HmmParams &params,  int new_obs);
+    inline  void updateGama(HmmParams &params,  int new_obs);
 
 
 
@@ -140,14 +183,14 @@ namespace Hmm{
  * Q[l](0) = P(x0 = l)
  * P(x0 = l) : initial state distribution
  * */
-    void updateQ(HmmParams &params, int new_obs);
+    inline void updateQ(HmmParams &params, int new_obs);
 
 /* equation 2.11
  * update Fi with Gama, y(T), Q(T-1)
  * Fi(T) = f(Gama(T), y(T), Q(T-1), Fi(T-1))
  *
  * */
-    void updateFi(HmmParams &params,  int new_obs, double learning_rate);
+    inline void updateFi(HmmParams &params,  int new_obs, double learning_rate);
 
 
 
@@ -155,7 +198,7 @@ namespace Hmm{
      * equation 2.14
      * */
 
-    void updateModel(HmmParams& params, bool A_update, bool B_update);
+    inline void updateModel(HmmParams& params, bool A_update, bool B_update);
 
 /* =================
  *

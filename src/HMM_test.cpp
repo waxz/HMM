@@ -40,6 +40,44 @@ std::vector<int> fileReader(std::string file_path){
     return nums;
 }
 
+
+struct Matrix{
+
+    int rows;
+    int cols;
+    float data[];
+
+};
+
+
+/*
+ * space and time
+ *
+ * fast and slow
+ *
+ * computation and load file
+ *
+ * prediction fast iterate on each cells for a new observation sequence
+ *
+ * offline , full history, pre-train fast iteration on a full observation
+ *
+ * online train
+ *
+ *
+ * laser processor : get map , robot pose, laser ,
+ * output a vector of 
+ *
+ * */
+
+
+/*
+ * map of vctor
+ * <cell_id, new_obs>
+ *
+ * */
+
+
+
 int main(){
 
 
@@ -50,14 +88,55 @@ int main(){
 
 
     // initialise model A B Q Fi Gama
-    Eigen::MatrixXf Q(1, 2) ;
+    Eigen::MatrixXf Q(1, STATE_DIM) ;
     Q << 0.5, 0.5;
-    Eigen::MatrixXf A(2, 2);
+    Eigen::MatrixXf A(STATE_DIM, STATE_DIM);
     A << 0.5,0.5,0.5,0.5;
 
-    Eigen::MatrixXf B(2, 3);
+    Eigen::MatrixXf B(STATE_DIM, OBS_DIM);
     B << 0.2,0.5,0.3,0.4,0.2,0.4;
 
+    Hmm::TensorX4 Fi(STATE_DIM,STATE_DIM,STATE_DIM,OBS_DIM);
+    Hmm::TensorX3 Gama(STATE_DIM,STATE_DIM,OBS_DIM);
+
+    Fi.setZero();
+    Gama.setZero();
+
+    Eigen::Matrix<float,2,2> A_(2, 2);
+    A_ << 0.5,0.5,0.5,0.5;
+
+//    Eigen::Matrix<float,2,3> B_;
+//    B_ << 0.2,0.5,0.3,0.4,0.2,0.4;
+    Eigen::Map<Eigen::Matrix<float,2,3>> B_(B.data());
+
+    Hmm::HmmParams params(Q, A, B, Fi, Gama);
+
+    time_util::Timer tm;
+    tm.start();
+    float  ss = 0.0;
+    for (int i=0;i<5000*24*2;i++){
+//        Eigen::Matrix<float,2,2> ta = params.A();
+//        Eigen::Matrix<float,2,3> tb = params.B();
+//
+//        Eigen::Matrix<float,2,3> ab = params.A()*params.B();
+//        Eigen::Matrix<float,1,2> qa = params.Q()*params.A();
+        Hmm::MatrixQ qq = params.Q() * params.A();
+//        qq(0,0) = 89.44;
+        params.setQ(qq);
+//        pq = 45.6;
+//        params.Q(0,0) = 78.9;
+//        params.Q_ptr.get()->operator()(0,0) = 67.8;
+//        float jg = ab(0);
+//        ss += jg;
+
+//        cout << "jg " << jg;
+
+    }
+    tm.stop();
+    auto pq = params.Q(0,0) ;
+
+    cout << "tm time " << tm.elapsedMicroseconds() <<"sum: " << ss <<"pq: " << pq << endl;
+//    return 0;
 //    Eigen::Tensor<float, 3> mt(3,3,2);
 //    mt.setValues({{{1,2},{2,9},{3,0}},{{4,3},{5,2},{6,3}},{{7,4},{8,5},{9,6}}});
 //
@@ -67,17 +146,39 @@ int main(){
 //    return 0;
 
 
-    Hmm::Tensor4f Fi(2,2,2,3);
-    Hmm::Tensor3f Gama(2,2,3);
+
+    Hmm::TensorFi Fit(Fi);
 
 
-    Fi.setZero();
-    Gama.setZero();
+//    return 0;
+    std::vector<Hmm::HmmParams> params_vec;
 
-    Hmm::HmmParams params(Q, A, B, Fi, Gama);
+    time_util::Timer timer2;
+    timer2.start();
+#if 0
+    int gz = 20*20*100*100;
+    for(int i=0; i<2;i++){
+        Hmm::HmmParams params1(Q, A, B, Fi, Gama);
 
+        params_vec.push_back(params);
+
+    }
+
+    params_vec[0].A()(0,0) = 9090;
+    cout << "update param: " << params.A()(0,0) << endl;
+    timer2.stop();
+    cout << "create time: " << timer2.elapsedSeconds() << endl;
+    cout << "memory size: " << gz * 50 * 4 /1e6 <<"MB" <<endl;
+    {
+        int scope_a = 909;
+    }
+    return 0;
+#endif
     float lr = 0.001;
     std::vector<int> data = {0,1,2};
+
+
+//    timer2.Sleep(5);
 
 #if 0
     updateGama(params, 0);
@@ -92,15 +193,24 @@ int main(){
 
 #if 1
     bool first = true;
-    for (int i = 0; i < 50;i++){
-        cout << "=== " << i << endl;
+    time_util::Timer timer;
+    timer.start();
+    int bz = 50;
+    for (int i = 0; i < bz;i++){
+//        cout << "=== " << i << endl;
         int cs = (first) ? 100:0;
+        time_util::Timer timer1;
+        timer1.start();
         Hmm::learn(params,sim_data,lr, cs);
 
+        timer1.stop();
+        cout << "one loop run time: " << timer1.elapsedMicroseconds() << endl;
 
         cout << "A:\n" << params.A() << endl;
         cout << "B:\n" << params.B() << endl;
     }
+    timer.stop();
+    cout << "all run time: " << timer.elapsedSeconds() << endl;
 #endif
 
 //    Hmm::updateModel(params);
