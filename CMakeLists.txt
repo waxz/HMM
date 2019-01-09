@@ -26,7 +26,7 @@ target_link_libraries(HmmTrainerRos HmmTrainer)
 mc_install_library(HmmTrainerRos)
 
 
-message(STATUS "PROJECT_LIBS: " ${PROJECT_LIBS})
+message(STATUS "==== \n All PROJECT_LIBS: " ${PROJECT_LIBS})
 
 set(SRC src/HMM_test.cpp)
 mc_add_executable(HmmTest ${SRC})
