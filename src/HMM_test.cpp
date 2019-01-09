@@ -204,13 +204,28 @@ int main(){
         Hmm::learn(params,sim_data,lr, cs);
 
         timer1.stop();
+#if 0
         cout << "one loop run time: " << timer1.elapsedMicroseconds() << endl;
 
         cout << "A:\n" << params.A() << endl;
         cout << "B:\n" << params.B() << endl;
+#endif
     }
     timer.stop();
-    cout << "all run time: " << timer.elapsedSeconds() << endl;
+    cout << "all run time: " << timer.elapsedSeconds() << " seconds" << endl;
+    timer.start();
+    std::vector<int> obs_data{1};
+    int psz = 20 * 20 * 30 * 30;
+    for (int i = 0; i < psz; i++) {
+        Hmm::predict(params, obs_data);
+
+    }
+    cout << "predict Q: " << params.Q() << endl;
+    timer.stop();
+    cout << "predict run time: " << timer.elapsedSeconds() << " seconds" << endl;
+    cout << "predict run loop time: " << timer.elapsedMicroseconds() / psz << " micro seconds" << endl;
+
+
 #endif
 
 //    Hmm::updateModel(params);

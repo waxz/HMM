@@ -6,9 +6,10 @@
 #define HMM_HMM_H
 #include <HMM/time.h>
 
-
+#define EIGEN_RUNTIME_NO_MALLOC // Define this symbol to enable runtime tests for allocations
 #include <Eigen/Eigen>
 #include <Eigen/Core>
+#include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 //#include <unsupported/Eigen/CXX11/TensorFixedSize>
 #include <vector>
@@ -39,13 +40,13 @@ namespace Hmm{
     // save data to
     // use tensor
     class HmmParams{
-    public:
+    protected:
         std::shared_ptr<MatrixQ> Q_ptr;
         std::shared_ptr<MatrixTrans> A_ptr;
         std::shared_ptr<MatrixObs> B_ptr;
         std::shared_ptr<TensorFi> Fi_ptr;
         std::shared_ptr<TensorGama> Gama_ptr;
-
+        std::vector<Eigen::Matrix<float, STATE_DIM, STATE_DIM>> Bo;
         bool valid;
 
     public:
@@ -71,6 +72,29 @@ namespace Hmm{
         Eigen::MatrixXf& Fi;
         Eigen::MatrixXf& Gama;
 #endif
+
+        inline std::vector<Eigen::Matrix<float, STATE_DIM, STATE_DIM>> &
+        Bi() {
+
+
+            if (Bo.empty()) {
+                Eigen::Matrix<float, STATE_DIM, OBS_DIM> B = *B_ptr;
+
+                for (int i = 0; i < OBS_DIM; i++) {
+                    Eigen::Matrix<float, STATE_DIM, STATE_DIM> Bi = Eigen::Matrix<float, STATE_DIM, STATE_DIM>::Zero();
+
+                    Bi.diagonal() = B.col(i);
+
+
+                    Bo.push_back(Bi);
+
+
+//                    exit(12);
+                }
+            }
+
+            return Bo;
+        }
 
         MatrixQ& Q(){
             return *Q_ptr;
@@ -117,7 +141,8 @@ namespace Hmm{
                 B_ptr(std::make_shared<MatrixObs>(B_)),
                 Fi_ptr(std::make_shared<TensorFi>(Fi_)),
                 Gama_ptr(std::make_shared<TensorGama>(Gama_)),
-                valid(false){
+                Bo(),
+                valid(false) {
             // check dimention
 
             state_dim = A_.cols();
@@ -211,16 +236,22 @@ namespace Hmm{
  *
  *
  * */
-    void learn(HmmParams& params, std::vector<int > training_data, float learning_rate, int cache_step = 0);
+    void learn(HmmParams &params, std::vector<int> &training_data, float learning_rate, int cache_step = 0);
 
 
     /* predict current state with latest observation
      * store prediction result in Q
      * */
 
-    void predict(HmmParams& params, std::vector<int> training_data);
+    void predict(HmmParams &params, std::vector<int> &training_data);
 
+    /*
+     * get stable state probility if no observation data get
+     * */
 
+    /* == save and load
+     *
+     * */
 }
 
 

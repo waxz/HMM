@@ -6,11 +6,15 @@
 
  void Hmm::updateGama(HmmParams &params, int new_obs) {
 
-    Eigen::Matrix<float,1,1> QAB = params.Q()*(params.A()*params.B().col(new_obs));
 
+     auto Bi = params.B().col(new_obs);
+     Eigen::Matrix<float, 1, 1> QAB = params.Q() * (params.A() * Bi);
+#if 0
     Eigen::Matrix<float,STATE_DIM,STATE_DIM> B_eye = Eigen::Matrix<float,STATE_DIM,STATE_DIM>::Zero();
 
     B_eye.diagonal() = params.B().col(new_obs);
+#endif
+     auto B_eye = Bi.asDiagonal();
 
     Eigen::Matrix<float,STATE_DIM,STATE_DIM> AB_eye = params.A()*B_eye;
 
@@ -18,7 +22,7 @@
 
     eye_matrix *= 1.0f/QAB(0,0);
 
-    AB_eye = AB_eye *eye_matrix;
+     AB_eye *= eye_matrix;
 
     // matrix to tensor
     Eigen::TensorMap<Eigen::Tensor<float, 2>> t_AB(AB_eye.data(),AB_eye.rows(),AB_eye.cols());
@@ -33,10 +37,11 @@
 
  void Hmm::updateQ(HmmParams &params, int new_obs) {
 
+
     TensorGama2 g = params.Gama().chip(new_obs,2);
 
     Eigen::Map<Eigen::Matrix<float, 2, 2>> G(g.data());
-    params.Q() = params.Q() * G;
+     params.Q() *= G;
 
 
 #if 0
@@ -60,11 +65,11 @@ void Hmm::updateFi(HmmParams &params, int new_obs, double learning_rate) {
     auto dim2 = params.Fi().dimension(2);
     auto dim3 = params.Fi().dimension(3);
 
-    TensorFi Fi = params.Fi();
-    TensorFi Fi_updated = params.Fi();
+    TensorFi &Fi = params.Fi();
+    TensorFi &Fi_updated = params.Fi();
 
-    TensorGama Gama = params.Gama();
-    MatrixQ Q = params.Q();
+    TensorGama &Gama = params.Gama();
+    MatrixQ &Q = params.Q();
     for (int i = 0; i < dim0; i++){
         for (int j = 0; j < dim1; j++){
             for (int h = 0; h < dim2; h++){
@@ -92,35 +97,44 @@ void Hmm::updateModel(HmmParams &params, bool A_update, bool B_update) {
     std::cout << "updateModel, get Fi:\n" << params.Fi() << std::endl;
 #endif
 
-    auto dim0 = params.A().cols();
-    auto dim1 = params.B().cols();
+    auto dim0 = STATE_DIM;
+    auto dim1 = OBS_DIM;
 
     Eigen::array<int, 2> Ai({2,3});
     Eigen::array<int, 2> Bi({0,2});
 
-    Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM,STATE_DIM>> A_sum = params.Fi().sum(Ai);
-    Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM,OBS_DIM>> B_sum = params.Fi().sum(Bi);
+    TensorFi &Fi = params.Fi();
+
+    Eigen::TensorFixedSize<float, Eigen::Sizes<STATE_DIM, STATE_DIM>> A_sum = Fi.sum(Ai);
+    Eigen::TensorFixedSize<float, Eigen::Sizes<STATE_DIM, OBS_DIM>> B_sum = Fi.sum(Bi);
 
 
     Eigen::Map<Eigen::Matrix<float, STATE_DIM, STATE_DIM>> A_sum_m(A_sum.data());
     Eigen::Map<Eigen::Matrix<float, STATE_DIM, OBS_DIM>> B_sum_m(B_sum.data());
 
 
+    Eigen::TensorFixedSize<float, Eigen::Sizes<STATE_DIM>> Ar;
+    Eigen::TensorFixedSize<float, Eigen::Sizes<>> row_sum;
+
+    Eigen::TensorFixedSize<float, Eigen::Sizes<OBS_DIM>> Br;
+
     for (int i = 0; i < dim0; i++){
 
 
         if (A_update){
-            Eigen::TensorFixedSize<float,Eigen::Sizes<STATE_DIM>> Ar = A_sum.chip(i,0);
-            Eigen::TensorFixedSize<float,Eigen::Sizes<1>> A_row_sum = Ar.sum();
-            params.A().row(i) = A_sum_m.row(i)/A_row_sum(0);
+            Ar = A_sum.chip(i, 0);
+            row_sum = Ar.sum();
+            //            Eigen::Tensor<float,0> A2_row_sum = Ar.sum();
+
+            params.A().row(i) = A_sum_m.row(i) / row_sum(0);
 
         }
 
         if (B_update){
-            Eigen::TensorFixedSize<float,Eigen::Sizes<OBS_DIM>> Br = B_sum.chip(i,0);
-            Eigen::TensorFixedSize<float,Eigen::Sizes<1>> B_row_sum = Br.sum();
+            Br = B_sum.chip(i, 0);
+            row_sum = Br.sum();
 
-            params.B().row(i) = B_sum_m.row(i)/B_row_sum(0);
+            params.B().row(i) = B_sum_m.row(i) / row_sum(0);
 
         }
 
@@ -137,7 +151,7 @@ void Hmm::updateModel(HmmParams &params, bool A_update, bool B_update) {
 
 }
 
-void Hmm::learn(HmmParams &params, std::vector<int > training_data, float learning_rate, int cache_step ) {
+void Hmm::learn(HmmParams &params, std::vector<int> &training_data, float learning_rate, int cache_step) {
 
 #if 0
     std::cerr<< "training data size " << training_data.size() << std::endl;
@@ -199,11 +213,19 @@ void Hmm::learn(HmmParams &params, std::vector<int > training_data, float learni
     t4.stop();
     std::cout << " updateModel time: " << t4. elapsedMicroseconds() << std::endl;
 
+    exit(0);
 #endif
+#if 1
     time_util::Timer t;
     t.start();
     for (auto ob : training_data){
+        Eigen::internal::set_is_malloc_allowed(false);
+        // It's NOT OK to allocate here
+        // An assertion will be triggered if an Eigen-related heap allocation takes place
         updateGama(params, ob);
+
+        Eigen::internal::set_is_malloc_allowed(true);
+        // It's OK to allocate again
 
         updateFi(params, ob, learning_rate);
 
@@ -214,12 +236,13 @@ void Hmm::learn(HmmParams &params, std::vector<int > training_data, float learni
 
     t.stop();
     std::cout << " training time: " << t. elapsedMicroseconds() << std::endl;
-
+#endif
 }
 
-void Hmm::predict(HmmParams &params, std::vector<int> training_data) {
+void Hmm::predict(HmmParams &params, std::vector<int> &training_data) {
+#if 0
     std::cerr<< "training data size " << training_data.size() << std::endl;
-
+#endif
     // check training data, length
     if (training_data.empty()){
 
@@ -227,5 +250,15 @@ void Hmm::predict(HmmParams &params, std::vector<int> training_data) {
         return;
 
     }
+
+    // B matrix
+    std::vector<Eigen::Matrix<float, STATE_DIM, STATE_DIM>> &Bo = params.Bi();
+
+
+    for (auto ob : training_data) {
+
+        params.Q() *= params.A() * Bo[ob];
+    }
+    params.Q() /= params.Q().sum();
 
 }
